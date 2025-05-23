@@ -32,8 +32,8 @@
 # File Name : generic.mk
 # Author    : Rafal Harabien
 # ******************************************************************************
-# $Date: 2024-06-18 12:14:03 +0200 (wto, 18 cze 2024) $
-# $Revision: 1067 $
+# $Date: 2025-04-18 14:09:53 +0200 (pią, 18 kwi 2025) $
+# $Revision: 1149 $
 #H******************************************************************************
 
 ifeq ($(OS),Windows_NT)
@@ -175,13 +175,13 @@ CHIPCRAFT_SDK_DBG_BAUDRATE    ?= $(DBG_BAUDRATE)
 CHIPCRAFT_SDK_UART_BAUDRATE   ?= $(UART_BAUDRATE)
 CHIPCRAFT_SDK_CCPROG_BAUDRATE ?= auto
 
-CCPROG_FLAGS          += --mcu $(CHIPCRAFT_SDK_MCU)
+CCPROG_FLAGS += --mcu $(CHIPCRAFT_SDK_MCU)
 DBGSERVER_FLAGS += --mcu $(CHIPCRAFT_SDK_MCU)
 ifeq ($(CHIPCRAFT_SDK_USE_JTAG),Yes)
  $(info Using JTAG connection.)
- CCPROG_FLAGS          += $(CHIPCRAFT_SDK_JTAG_FLAG)
+ CCPROG_FLAGS += $(CHIPCRAFT_SDK_JTAG_FLAG) $(CCPROG_OTHER_FLAGS)
 else
- CCPROG_FLAGS          += -p $(CHIPCRAFT_SDK_DBG_PORT) -b $(CHIPCRAFT_SDK_CCPROG_BAUDRATE)
+ CCPROG_FLAGS += -p $(CHIPCRAFT_SDK_DBG_PORT) -b $(CHIPCRAFT_SDK_CCPROG_BAUDRATE) --burst $(CCPROG_OTHER_FLAGS)
  DBGSERVER_FLAGS += -p $(CHIPCRAFT_SDK_DBG_PORT) -b $(CHIPCRAFT_SDK_DBG_BAUDRATE)
 endif
 

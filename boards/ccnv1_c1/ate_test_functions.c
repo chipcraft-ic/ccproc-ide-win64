@@ -32,8 +32,8 @@
 * File Name : ate_test_functions.c
 * Author    : Krzysztof Siwiec
 * ******************************************************************************
-* $Date: 2024-07-04 21:54:52 +0200 (czw, 04 lip 2024) $
-* $Revision: 1069 $
+* $Date: 2025-05-16 14:07:05 +0200 (Fri, 16 May 2025) $
+* $Revision: 1152 $
 *H*****************************************************************************/
 
 #include <core_util.h>
@@ -93,8 +93,8 @@ static void GnssStartAccumulatorsTrackingBist(uint16_t channel_num, uint64_t sta
     uint16_t bank_channel_num = core_channel_num % GNSS_CHANN_PER_BANK;
     uint32_t int_start_time_tmr = (uint32_t)start_time_tmr;
     if (int_start_time_tmr == 0) int_start_time_tmr++; // int_start_time_tmr = 0 is invalid, see GNSS-ISE documentation
-    GNSS_CHANN_SET(core_channel_num);
-    GNSS_FREE_ACCU_WR(1<<bank_channel_num,int_start_time_tmr);
+    GNSS_CHANN_SET(0,core_channel_num);
+    GNSS_FREE_ACCU_WR(0,1<<bank_channel_num,int_start_time_tmr);
 }
 
 /**
@@ -137,11 +137,11 @@ static void GnssSetChannelCarrierAfeBist(uint16_t channel_num,  int32_t carrier_
     {
         *nco_freq_base = nco_freq;
     }
-    GNSS_CHANN_SET(core_channel_num);
+    GNSS_CHANN_SET(0,core_channel_num);
     uint32_t carr_ptr = 0;
 
-    GNSS_CARR_SET(carr_ptr, GNSS_CARR_PIPQ_PQMI);
-    GNSS_CARR_FREQ(nco_freq);
+    GNSS_CARR_SET(0,carr_ptr, GNSS_CARR_PIPQ_PQMI);
+    GNSS_CARR_FREQ(0,nco_freq);
 }
 
 /**
@@ -157,17 +157,17 @@ static uint32_t GnssSetChannelCodeAfeBist(uint16_t channel_num)
 
     prn_result = &(prn_array[0]);
 
-    GNSS_CHANN_SET(channel_num);
-    GNSS_PCODE_ADDR_SET(0,0);
+    GNSS_CHANN_SET(0,channel_num);
+    GNSS_PCODE_ADDR_SET(0,0,0);
     for (int i=0; i<prn_words; i++)
     {
-        GNSS_PCODE_WR(prn_result[i]);
+        GNSS_PCODE_WR(0,prn_result[i]);
     }
 
     // after channel initialization set lock coefficient to single integration period
-    GNSS_PCODE_LEN(prn_chips, 1, 10, GNSS_LOCK_DEF_SCALE);
+    GNSS_PCODE_LEN(0,prn_chips, 1, 10, GNSS_LOCK_DEF_SCALE);
     // secondary code is disabled
-    GNSS_SCODE_LEN(0);
+    GNSS_SCODE_LEN(0,0);
 
     // set code nco
     uint32_t code_freq_hz = 1023000;
@@ -188,10 +188,10 @@ static uint32_t GnssSetChannelCodeAfeBist(uint16_t channel_num)
 
     uint32_t nco_freq_hz = (uint32_t) nco_freq_check;
     //LOG(LOG_INFO,"(%s:%u) Set code for channel %d, nco_freq %u!\n",__FILE__,__LINE__,(int)channel_num,(unsigned)nco_freq_hz);
-    GNSS_CHANN_SET(channel_num);
-    GNSS_CODE_NCO_FREQ(nco_freq_hz, 0);
-    GNSS_CODE_EPL_FREQ(epl_freq,chip_freq);
-    GNSS_PCODE_ADDR_SET(0,0);
+    GNSS_CHANN_SET(0,channel_num);
+    GNSS_CODE_NCO_FREQ(0,nco_freq_hz, 0);
+    GNSS_CODE_EPL_FREQ(0,epl_freq,chip_freq);
+    GNSS_PCODE_ADDR_SET(0,0,0);
     return nco_freq_hz;
 }
 
@@ -202,23 +202,23 @@ static void GnssSetupAccumulatorsAfeBist(uint16_t channel_num, bool pll_update, 
 {
     uint16_t core_channel_num = GnssGetGlobalToCoreChannelNumBist(channel_num);
     uint16_t bank_channel_num = core_channel_num % GNSS_CHANN_PER_BANK;
-    GNSS_CHANN_SET(core_channel_num);
+    GNSS_CHANN_SET(0,core_channel_num);
 
-    GNSS_FREE_UPDATE_WR(GNSS_FREE_UPDATE_RD() & ~((1 << bank_channel_num) | (1 << (bank_channel_num+16)))); // clear PLL and DLL update bits
-    GNSS_FREE_UPDATE_WR(GNSS_FREE_UPDATE_RD() | ((pll_update << bank_channel_num) | (dll_update << (bank_channel_num+16)))); // set PLL and DLL update bits
+    GNSS_FREE_UPDATE_WR(0,GNSS_FREE_UPDATE_RD(0) & ~((1 << bank_channel_num) | (1 << (bank_channel_num+16)))); // clear PLL and DLL update bits
+    GNSS_FREE_UPDATE_WR(0,GNSS_FREE_UPDATE_RD(0) | ((pll_update << bank_channel_num) | (dll_update << (bank_channel_num+16)))); // set PLL and DLL update bits
 
-    GNSS_FREE_ACCU_WR(GNSS_FREE_ACCU_RD() & ~((1 << bank_channel_num) | (1 << (bank_channel_num+16))),0); // clear very early/late branches and free running bits
+    GNSS_FREE_ACCU_WR(0,GNSS_FREE_ACCU_RD(0) & ~((1 << bank_channel_num) | (1 << (bank_channel_num+16))),0); // clear very early/late branches and free running bits
 
     // clear remaining data in accumulators
     //GNSS_ACCU_ADD(0,1<<31); // TODO: may break gathering ranges in tracking
 
     if (tracking == true)
     {
-        GNSS_FREE_ACCU_WR(GNSS_FREE_ACCU_RD(),0);
+        GNSS_FREE_ACCU_WR(0,GNSS_FREE_ACCU_RD(0),0);
     }
     else // acquisition, use very early and very late branches
     {
-        GNSS_FREE_ACCU_WR(GNSS_FREE_ACCU_RD() | (1 << (bank_channel_num+16)),0); // set very early/late branches bits
+        GNSS_FREE_ACCU_WR(0,GNSS_FREE_ACCU_RD(0) | (1 << (bank_channel_num+16)),0); // set very early/late branches bits
     }
 
 }
@@ -232,11 +232,11 @@ static void GnssSetupGnssAfeBist(uint16_t channel_num, enum gnss_ise_rfafe_enum 
     uint16_t core_channel_num = GnssGetGlobalToCoreChannelNumBist(channel_num);
     uint16_t bank_channel_num = core_channel_num % GNSS_CHANN_PER_BANK;
 
-    GNSS_CHANN_SET(core_channel_num);
-    uint32_t gnss_afe_mask = GNSS_AFE_RD();
+    GNSS_CHANN_SET(0,core_channel_num);
+    uint32_t gnss_afe_mask = GNSS_AFE_RD(0);
     gnss_afe_mask &= ~(3 << (bank_channel_num*2)); // clear AFE bitsGnssSetChannelCarrierAfeBist
     gnss_afe_mask |= (rfafe << (bank_channel_num*2)); // set AFE bits
-    GNSS_AFE_WR(gnss_afe_mask);
+    GNSS_AFE_WR(0,gnss_afe_mask);
 
 }
 
@@ -318,21 +318,21 @@ static float GnssRunSingleAfeBist(uint8_t lpf_band, uint8_t mod_att, uint8_t mod
                     if (GNSS_PTR->TICKF & (1<<j))
                     {
 
-                        GNSS_CHANN_SET(j);
-                        GNSS_ACCU_GET();
-                        data_i[global_channel_num] = GNSS_ACCU_GET();
-                        data_q[global_channel_num] = GNSS_ACCU_GET();
-                        GNSS_ACCU_GET();
-                        GNSS_ACCU_GET();
-                        GNSS_ACCU_GET();
-                        GNSS_ACCU_GET();
-                        GNSS_ACCU_GET();
-                        GNSS_ACCU_GET();
-                        GNSS_ACCU_GET();
-                        GNSS_ACCU_GET();
+                        GNSS_CHANN_SET(0,j);
+                        GNSS_ACCU_GET(0);
+                        data_i[global_channel_num] = GNSS_ACCU_GET(0);
+                        data_q[global_channel_num] = GNSS_ACCU_GET(0);
+                        GNSS_ACCU_GET(0);
+                        GNSS_ACCU_GET(0);
+                        GNSS_ACCU_GET(0);
+                        GNSS_ACCU_GET(0);
+                        GNSS_ACCU_GET(0);
+                        GNSS_ACCU_GET(0);
+                        GNSS_ACCU_GET(0);
+                        GNSS_ACCU_GET(0);
 
-                        GNSS_CHANN_SET(j);
-                        GNSS_FREE_ACCU_WR(GNSS_FREE_ACCU_RD() & ~(1 << j),0); // clear free running bit
+                        GNSS_CHANN_SET(0,j);
+                        GNSS_FREE_ACCU_WR(0,GNSS_FREE_ACCU_RD(0) & ~(1 << j),0); // clear free running bit
 
                         GNSS_PTR->TICKF = (1<<j); // clear flag
                         channel_count += 1;
@@ -388,9 +388,9 @@ static void core_FunctionAfeBist()
     uint32_t signal_l5_hf;
     uint32_t imag_l5;
 
-    if ((GNSS_STATUS_RD() & 1) == 0)
+    if ((GNSS_STATUS_RD(0) & 1) == 0)
     {
-        GNSS_STATUS_WR(1);
+        GNSS_STATUS_WR(0,1);
     }
 
     GNSS_PTR->STCR |= 0x70; //GNSS_STCR_L1E1_EN | GNSS_STCR_L5E5_EN | GNSS_STCR_L2E6_EN;
